@@ -2,18 +2,24 @@
 using NetMQ.Sockets;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MMQServer
 {
     class Program
     {
+
         static void Main(string[] args)
         {
-            ReqResponse();
-            return;
+            using (LoggerService logService_ = new LoggerService())
+                logService_.Start();
+            //ReqResponse();
+            //return;
             //Subscriber();
         }
 
@@ -49,4 +55,159 @@ namespace MMQServer
             }
         }
     }
+
+    class Subscriptions
+    {
+        private HashSet<int> Processes = new HashSet<int>();
+        private readonly object _obj = new object();
+
+        public bool ActiveMonitor { get; set; }
+        public bool IsListenerPresent() { lock (_obj) { return Processes.Count > 0; } }
+
+        public void AddListener(int id)
+        {
+            lock (_obj)
+            {
+                Processes.Add(id);
+            }
+        }
+        public void RemoveListener(int id)
+        {
+            lock (_obj)
+            {
+                Processes.Remove(id);
+            }
+        }
+
+        public void MontitorLister()
+        {
+            while(ActiveMonitor)
+            {
+                Thread.Sleep(TimeSpan.FromSeconds(20));
+                List<int> removeListener = new List<int>();
+                lock (_obj)
+                {
+                    foreach (var p in Processes)
+                    {
+                        try
+                        {
+                            Process.GetProcessById(p);
+                        }
+                        catch (Exception)
+                        {
+                            removeListener.Add(p);
+                        }
+                    }
+
+                    foreach(var p in removeListener)
+                    {
+                        Processes.Remove(p);
+                    }
+                }
+            }
+        }
+    }
+
+    class Command
+    {
+        public enum ActionKind
+        {
+            Start,
+            Stop,
+            Log
+        }
+
+        public enum ParameterName
+        {
+            AppName,
+            ProcessId,
+            Message
+        }
+        public ActionKind Action { get; set; }
+        public Dictionary<string, string> Parameters { get; set; }
+
+        public string GetJson()
+        {
+            return JsonSerializer.Serialize(this);
+        }
+
+        public static Command CreateCommand(string json)
+        {
+            return JsonSerializer.Deserialize<Command>(json);
+        }
+
+    }
+    public class LoggerService : System.IDisposable
+    {
+        private const string Address = "tcp://127.0.0.1:5556";
+        private Subscriptions sub = new Subscriptions();
+        private ResponseSocket socket = null;
+        private bool disposed = false;
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                socket.Dispose();
+            }
+            disposed = true;
+        }
+
+        public void Start()
+        {
+            sub.ActiveMonitor = true;
+            Thread montitorThread = new Thread(sub.MontitorLister);
+            while (socket == null || sub.IsListenerPresent())
+            {
+                if (socket == null)
+                {
+                    socket = new ResponseSocket();
+                    socket.Bind(Address);
+                    montitorThread.Start();
+                }
+                if (socket.TryReceiveFrameString(TimeSpan.FromSeconds(20), out string msg))
+                {
+                    if (!ProcessMessage(msg))
+                        break;
+                }
+            }
+            sub.ActiveMonitor = false;
+            socket.Unbind(Address);
+            socket.Dispose();
+            
+        }
+
+        private bool ProcessMessage(string msg)
+        {
+            Command cmd = Command.CreateCommand(msg);
+            bool returnval = true;
+            switch (cmd.Action)
+            {
+                case Command.ActionKind.Start:
+                    Console.WriteLine("Start ProcessId: {0}", cmd.Parameters[Command.ParameterName.ProcessId.ToString()]);
+                    sub.AddListener(Int32.Parse(cmd.Parameters[Command.ParameterName.ProcessId.ToString()]));
+                    break;
+                case Command.ActionKind.Log:
+                    Console.WriteLine("Log AppName: {0} Message{1}", cmd.Parameters[Command.ParameterName.AppName.ToString()], cmd.Parameters[Command.ParameterName.Message.ToString()]);
+                    break;
+                case Command.ActionKind.Stop:
+                    Console.WriteLine("Stop ProcessId: {0}", cmd.Parameters[Command.ParameterName.ProcessId.ToString()]);
+                    sub.RemoveListener(Int32.Parse(cmd.Parameters[Command.ParameterName.ProcessId.ToString()]));
+                    if (!sub.IsListenerPresent())
+                        returnval = false;
+                    break;
+            }
+            socket.SendFrame("Received");
+            return returnval;
+        }
+    }
+
 }
