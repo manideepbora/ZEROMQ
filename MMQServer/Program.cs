@@ -143,6 +143,10 @@ namespace MMQServer
         private Subscriptions sub = new Subscriptions();
         private ResponseSocket socket = null;
         private bool disposed = false;
+        private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
+
+        private static Dictionary<string, NLog.Logger> loggers = new Dictionary<string, NLog.Logger>();
+
         public void Dispose()
         {
             Dispose(true);
@@ -197,6 +201,7 @@ namespace MMQServer
                     break;
                 case Command.ActionKind.Log:
                     Console.WriteLine("Log AppName: {0} Message{1}", cmd.Parameters[Command.ParameterName.AppName.ToString()], cmd.Parameters[Command.ParameterName.Message.ToString()]);
+                    LogData(cmd);
                     break;
                 case Command.ActionKind.Stop:
                     Console.WriteLine("Stop ProcessId: {0}", cmd.Parameters[Command.ParameterName.ProcessId.ToString()]);
@@ -207,6 +212,23 @@ namespace MMQServer
             }
             socket.SendFrame("Received");
             return returnval;
+        }
+       // private static readonly NLog.Logger Logger1 = NLog.LogManager.GetCurrentClassLogger();
+        private void LogData(Command cmd)
+        {
+            var appName = cmd.Parameters[Command.ParameterName.AppName.ToString()];
+            NLog.Logger taskLogger = null;
+
+         //   Logger1.Info("Hello world");
+            if (loggers.ContainsKey(appName))
+                taskLogger = loggers[appName];
+            else
+            {
+                taskLogger = NLog.LogManager.GetLogger(appName);
+                loggers[appName] = taskLogger;
+            }
+
+            taskLogger.Error(cmd.Parameters[Command.ParameterName.Message.ToString()]); 
         }
     }
 

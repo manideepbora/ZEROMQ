@@ -53,7 +53,7 @@ namespace MMQClientNet
         {
             while (true)
             {
-                LogMe("Test", 1, "how are you ?");
+                LogMe("Chart", 1, "how are you ?");
                 Console.WriteLine("more log ?");
                 var input = Console.ReadLine();
                 if (input == "no")
