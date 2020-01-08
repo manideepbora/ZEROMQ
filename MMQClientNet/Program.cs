@@ -43,6 +43,7 @@ namespace MMQClientNet
     class Program
     {
         private const string Address = "tcp://127.0.0.1:5556";
+        private const string FileName = @"E:\RPC\ZEROMQ\MMQServer\bin\Debug\MMQServer.exe";
         private static RequestSocket loggerServer = null;
         private static List<Command> pendingCommand = null;
         private static Process ServerProces = null;
@@ -71,7 +72,7 @@ namespace MMQClientNet
                 if(ServerProces == null)
                 {
                     Console.WriteLine("MMQServer.exe is stopped");
-                    ServerProces = Process.Start(@"C:\myPOC\ZEROMQ\MMQServer\bin\Debug\MMQServer.exe");
+                    ServerProces = Process.Start(FileName);
                 }
 
                 loggerServer = new RequestSocket();

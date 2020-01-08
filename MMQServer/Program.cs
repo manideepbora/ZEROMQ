@@ -58,7 +58,7 @@ namespace MMQServer
 
     class Subscriptions
     {
-        private HashSet<int> Processes = new HashSet<int>();
+        private Dictionary<int, Process> Processes = new Dictionary<int, Process>();
         private readonly object _obj = new object();
 
         public bool ActiveMonitor { get; set; }
@@ -68,9 +68,20 @@ namespace MMQServer
         {
             lock (_obj)
             {
-                Processes.Add(id);
+                var process = Process.GetProcessById(id);
+                process.EnableRaisingEvents = true;
+                process.Exited += Process_Exited;
+                if(!Processes.ContainsKey(id))
+                    Processes.Add(id, process);
             }
         }
+
+        private void Process_Exited(object sender, EventArgs e)
+        {
+            var p = sender as Process;
+            Processes.Remove(p.Id);
+        }
+
         public void RemoveListener(int id)
         {
             lock (_obj)
@@ -79,33 +90,33 @@ namespace MMQServer
             }
         }
 
-        public void MontitorLister()
-        {
-            while(ActiveMonitor)
-            {
-                Thread.Sleep(TimeSpan.FromSeconds(20));
-                List<int> removeListener = new List<int>();
-                lock (_obj)
-                {
-                    foreach (var p in Processes)
-                    {
-                        try
-                        {
-                            Process.GetProcessById(p);
-                        }
-                        catch (Exception)
-                        {
-                            removeListener.Add(p);
-                        }
-                    }
+        //public void MontitorLister()
+        //{
+        //    while(ActiveMonitor)
+        //    {
+        //        Thread.Sleep(TimeSpan.FromSeconds(20));
+        //        List<int> removeListener = new List<int>();
+        //        lock (_obj)
+        //        {
+        //            foreach (var p in Processes)
+        //            {
+        //                try
+        //                {
+        //                    Process.GetProcessById(p);
+        //                }
+        //                catch (Exception)
+        //                {
+        //                    removeListener.Add(p);
+        //                }
+        //            }
 
-                    foreach(var p in removeListener)
-                    {
-                        Processes.Remove(p);
-                    }
-                }
-            }
-        }
+        //            foreach(var p in removeListener)
+        //            {
+        //                Processes.Remove(p);
+        //            }
+        //        }
+        //    }
+        //}
     }
 
     class Command
@@ -168,14 +179,14 @@ namespace MMQServer
         public void Start()
         {
             sub.ActiveMonitor = true;
-            Thread montitorThread = new Thread(sub.MontitorLister);
+            //Thread montitorThread = new Thread(sub.MontitorLister);
             while (socket == null || sub.IsListenerPresent())
             {
                 if (socket == null)
                 {
                     socket = new ResponseSocket();
                     socket.Bind(Address);
-                    montitorThread.Start();
+                    //montitorThread.Start();
                 }
                 if (socket.TryReceiveFrameString(TimeSpan.FromSeconds(20), out string msg))
                 {

@@ -9,6 +9,8 @@
 #include <windows.h>
 #include <TlHelp32.h>
 #include <codecvt>
+#include <future>
+#include <queue>
 
 #include <map>
 #ifndef _WIN32
@@ -49,6 +51,7 @@ public:
 
 class CLogger
 {
+	std::queue <std::future<void> > q;
     void SendMessage(std::string msg)
     {
         zmq::message_t request;
@@ -58,7 +61,7 @@ class CLogger
 			
 			zmq::pollitem_t items[] = {
 			  { *socket, 0, ZMQ_POLLIN, 0 } };
-			if (zmq::poll(items, 1, 1000))
+			if (zmq::poll(items, 1, 10000))
 			{
 				socket->recv(request, zmq::recv_flags::none);
 			}
@@ -70,7 +73,7 @@ class CLogger
 			}
         }
     }
-
+	
     void Init()
     {
 		StartServer();
@@ -147,6 +150,7 @@ class CLogger
 		}
 		PendingMessages.clear();
 	}
+	bool IsSocketEmpty() {return socket == nullptr;	}
 public:
 	void Connect()
 	{
@@ -162,17 +166,23 @@ public:
 		SendMessage(Command::StopCommnad(GetCurrentProcessId()));
 		TerminateConnection();
 	}
-	void LogMessage(std::string appID, long level, std::string message)
+	void LogMessage(std::string appID, long level, std::string message, bool bReEnter = false)
 	{
-		if (socket == nullptr)
+		if (!bReEnter)
+		{
+			q.push(std::move(std::async([this, appID, level, message] {LogMessage(appID, level, message, true); })));
+			return;
+		}
+		if (IsSocketEmpty())
 			Connect();
 		SendMessage(Command::LogCommnad(appID, message));
+		q.pop();
 	}
 
 private:
 	const std::string address = "tcp://127.0.0.1:5556";
 	const std::string LoggerServerName = "MMQServer.exe";
-	const std::wstring LoggerServerPath = L"C:\\myPOC\\ZEROMQ\\MMQServer\\bin\\Debug\\MMQServer.exe";
+	const std::wstring LoggerServerPath = L"e:\\RPC\\ZEROMQ\\MMQServer\\bin\\Debug\\MMQServer.exe";
     zmq::context_t context;
     std::unique_ptr<zmq::socket_t> socket;// (context, ZMQ_REQ);
 	std::vector<std::string> PendingMessages;
