@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup>
+    <_PropertySheetDisplayName>Build Variables</_PropertySheetDisplayName>
+  </PropertyGroup>
+  <PropertyGroup Label="UserMacros">
+
+    <!-- ZMQ Related variables-->
+
+    <ZMQ_x86_ROOT>D:\repo\vcpkg\packages\zeromq_x86-windows\</ZMQ_x86_ROOT>
+    <ZMQ_x64_ROOT>D:\repo\vcpkg\packages\zeromq_x64-windows\</ZMQ_x64_ROOT>
+    <ZMQ Condition="'$(Platform)'=='Win32'">$(ZMQ_x86_ROOT)</ZMQ>
+    <ZMQ Condition="'$(Platform)'=='x64'">$(ZMQ_x64_ROOT)</ZMQ>
+    <ZMQ_INC>$(ZMQ)include\</ZMQ_INC>
+    <ZMQ_LIB Condition="'$(Configuration)'=='Debug'">$(ZMQ)debug\lib\</ZMQ_LIB>
+    <ZMQ_LIB Condition="'$(Configuration)'=='Release'">$(ZMQ)lib\</ZMQ_LIB>
+    <ZMQ_BIN Condition="'$(Configuration)'=='Debug'">$(ZMQ)debug\bin\</ZMQ_BIN>
+    <ZMQ_BIN Condition="'$(Configuration)'=='Release'">$(ZMQ)bin\</ZMQ_BIN>
+    <ZMQ_TOOLS>$(ZMQ)tools\ZMQ\</ZMQ_TOOLS>
+
+    <!-- ZMQCPP Related variables-->
+    <ZMQCPP_x86_ROOT>D:\repo\vcpkg\packages\cppzmq_x86-windows\</ZMQCPP_x86_ROOT>
+    <ZMQCPP_x64_ROOT>D:\repo\vcpkg\packages\cppzmq_x64-windows\</ZMQCPP_x64_ROOT>
+    <ZMQCPP Condition="'$(Platform)'=='Win32'">$(ZMQCPP_x86_ROOT)</ZMQCPP>
+    <ZMQCPP Condition="'$(Platform)'=='x64'">$(ZMQCPP_x64_ROOT)</ZMQCPP>
+    <ZMQCPP_INC>$(ZMQCPP)include\</ZMQCPP_INC>
+    <!--<ZMQCPP_LIB Condition="'$(Configuration)'=='Debug'">$(ZMQCPP)debug\lib\</ZMQCPP_LIB>
+    <ZMQCPP_LIB Condition="'$(Configuration)'=='Release'">$(ZMQCPP)lib\</ZMQCPP_LIB>
+    <ZMQCPP_BIN Condition="'$(Configuration)'=='Debug'">$(ZMQCPP)debug\bin\</ZMQCPP_BIN>
+    <ZMQCPP_BIN Condition="'$(Configuration)'=='Release'">$(ZMQCPP)bin\</ZMQCPP_BIN>
+    <ZMQCPP_TOOLS>$(ZMQ)tools\ZMQ\</ZMQCPP_TOOLS>-->
+
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <BuildMacro Include="ZMQ_LIB">
+      <Value>$(ZMQ_LIB)</Value>
+    </BuildMacro>
+    <BuildMacro Include="ZMQ_INC">
+      <Value>$(ZMQ_INC)</Value>
+    </BuildMacro>
+    <BuildMacro Include="ZMQCPP_INC">
+      <Value>$(ZMQCPP_INC)</Value>
+    </BuildMacro>
+    <BuildMacro Include="ZMQ_BIN">
+      <Value>$(ZMQ_BIN)</Value>
+    </BuildMacro>
+    
+  </ItemGroup>
+</Project>
