@@ -207,15 +207,15 @@ namespace MMQServer
             switch (cmd.Action)
             {
                 case Command.ActionKind.Start:
-                    Console.WriteLine("Start ProcessId: {0}", cmd.Parameters[Command.ParameterName.ProcessId.ToString()]);
+                    //Console.WriteLine("Start ProcessId: {0}", cmd.Parameters[Command.ParameterName.ProcessId.ToString()]);
                     sub.AddListener(Int32.Parse(cmd.Parameters[Command.ParameterName.ProcessId.ToString()]));
                     break;
                 case Command.ActionKind.Log:
-                    Console.WriteLine("Log AppName: {0} Message{1}", cmd.Parameters[Command.ParameterName.AppName.ToString()], cmd.Parameters[Command.ParameterName.Message.ToString()]);
+                    //Console.WriteLine("Log AppName: {0} Message{1}", cmd.Parameters[Command.ParameterName.AppName.ToString()], cmd.Parameters[Command.ParameterName.Message.ToString()]);
                     LogData(cmd);
                     break;
                 case Command.ActionKind.Stop:
-                    Console.WriteLine("Stop ProcessId: {0}", cmd.Parameters[Command.ParameterName.ProcessId.ToString()]);
+                    //Console.WriteLine("Stop ProcessId: {0}", cmd.Parameters[Command.ParameterName.ProcessId.ToString()]);
                     sub.RemoveListener(Int32.Parse(cmd.Parameters[Command.ParameterName.ProcessId.ToString()]));
                     if (!sub.IsListenerPresent())
                         returnval = false;
@@ -229,9 +229,8 @@ namespace MMQServer
         {
             var appName = cmd.Parameters[Command.ParameterName.AppName.ToString()];
 
-            NLog.Logger taskLogger = null;
-
-           if (loggers.ContainsKey(appName))
+            NLog.Logger taskLogger;
+            if (loggers.ContainsKey(appName))
                 taskLogger = loggers[appName];
             else
             {

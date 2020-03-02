@@ -2,23 +2,22 @@
 #include "TSLogger.h"
 using namespace ExternalLog;
 
-std::string Command::StartCommnad(int processID)
+std::string Command::StartCommnad(const std::string& log_name, int processID)
 {
 	std::ostringstream strm;
-	strm << "{\"Action\":0,\"Parameters\":{\"ProcessId\":\"";
-	strm << processID << "\"}}";
+	strm << "{\"Action\":0,\"Parameters\":{\"AppName\":\"" << log_name << "\", \"ProcessId\":\"" << processID << "\"}}";
 
 	return strm.str();
 }
 
-std::string Command::StopCommnad(int processID)
+std::string Command::StopCommnad(const std::string& log_name, int processID)
 {
 	std::ostringstream strm;
-	strm << "{\"Action\":1, \"Parameters\" : {\"ProcessId\":\"" << processID << "\"}}";
+	strm << "{\"Action\":1, \"Parameters\" : {\"AppName\":\"" << log_name << "\", \"ProcessId\":\"" << processID << "\"}}";
 	return strm.str();
 }
 
-std::string Command::LogCommnad(std::string appID, std::string message)
+std::string Command::LogCommnad(const std::string& appID, const std::string& message)
 {
 	std::ostringstream strm;
 	strm << "{\"Action\":2, \"Parameters\" : {\"AppName\":\"" << appID << "\", \"Message\" : \"" << message << "\"}}";
@@ -30,22 +29,22 @@ std::string Command::LogCommnad(std::string appID, std::string message)
 //==================================================
 
 
-void CLogger::SendLogMessage(std::string msg)
+void CLogger::SendLogMessage(const std::string& msg)
 {
 	zmq::message_t request;
-	if (socket->connected())
+	if (socket_->connected())
 	{
-		auto l = socket->send(zmq::const_buffer(msg.c_str(), msg.size()), zmq::send_flags::dontwait);
+		auto l = socket_->send(zmq::const_buffer(msg.c_str(), msg.size()), zmq::send_flags::dontwait);
 
 		zmq::pollitem_t items[] = {
-		  { *socket, 0, ZMQ_POLLIN, 0 } };
+		  { *socket_, 0, ZMQ_POLLIN, 0 } };
 		if (zmq::poll(items, 1, 10000))
 		{
-			socket->recv(request, zmq::recv_flags::none);
+			socket_->recv(request, zmq::recv_flags::none);
 		}
 		else
 		{
-			PendingMessages.push_back(msg);
+			pending_messages_.push_back(msg);
 			TerminateConnection();
 			Connect();
 		}
@@ -54,9 +53,9 @@ void CLogger::SendLogMessage(std::string msg)
 void CLogger::Init()
 {
 	StartServer();
-	context.setctxopt(1, 1);
-	socket = std::make_unique< zmq::socket_t>(context, ZMQ_REQ);
-	socket->connect(address.c_str());
+	context_.setctxopt(1, 1);
+	socket_ = std::make_unique< zmq::socket_t>(context_, ZMQ_REQ);
+	socket_->connect(Address.c_str());
 }
 void CLogger::StartServer()
 {
@@ -115,42 +114,45 @@ bool CLogger::IsProcessRunning(std::string processName)
 }
 void CLogger::TerminateConnection()
 {
-	if (socket != nullptr && IsLoggerServerRunning())
-		socket->disconnect(address.c_str());
-	socket = nullptr;
+	if (socket_ != nullptr && IsLoggerServerRunning())
+		socket_->disconnect(Address.c_str());
+	socket_ = nullptr;
 }
 void CLogger::FlushQueuedMessage()
 {
-	for (auto m : PendingMessages)
+	for (auto m : pending_messages_)
 	{
 		SendLogMessage(m);
 	}
-	PendingMessages.clear();
+	pending_messages_.clear();
 }
-bool CLogger::IsSocketEmpty() { return socket == nullptr; }
+bool CLogger::IsSocketEmpty() { return socket_ == nullptr; }
+
 void CLogger::Connect()
 {
-	if (socket == nullptr)
+	if (socket_ == nullptr)
 	{
 		Init();
-		SendLogMessage(Command::StartCommnad(GetCurrentProcessId()));
+		SendLogMessage(Command::StartCommnad(name_, GetCurrentProcessId()));
 	}
 	FlushQueuedMessage();
 }
+
 void CLogger::Disconnect()
 {
-	SendLogMessage(Command::StopCommnad(GetCurrentProcessId()));
+	SendLogMessage(Command::StopCommnad(name_, GetCurrentProcessId()));
 	TerminateConnection();
 }
-void CLogger::LogMessage(std::string appID, long level, std::string message, bool bReEnter)
+
+void CLogger::LogMessage(long level, const std::string& message, bool bReEnter)
 {
 	if (!bReEnter)
 	{
-		q.push(std::move(std::async([this, appID, level, message] {LogMessage(appID, level, message, true); })));
+		queue_message_.push(std::move(std::async([this, level, message] {LogMessage(level, message, true); })));
 		return;
 	}
 	if (IsSocketEmpty())
 		Connect();
-	SendLogMessage(Command::LogCommnad(appID, message));
-	q.pop();
+	SendLogMessage(Command::LogCommnad(name_, message));
+	queue_message_.pop();
 }

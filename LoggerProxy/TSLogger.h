@@ -28,16 +28,16 @@ namespace ExternalLog
 	class Command
 	{
 	public:
-		static std::string StartCommnad(int processID);
+		static std::string StartCommnad(const std::string& log_name, int processID);
 
-		static std::string StopCommnad(int processID);
+		static std::string StopCommnad(const std::string& log_name, int processID);
 
-		static std::string LogCommnad(std::string appID, std::string message);
+		static std::string LogCommnad(const std::string& appID, const std::string& message);
 	};
 
 	class LOGGER_CLASS CLogger
 	{
-		void SendLogMessage(std::string msg);
+		void SendLogMessage(const std::string& msg);
 		void Init();
 		void StartServer();
 		bool IsLoggerServerRunning();
@@ -46,18 +46,23 @@ namespace ExternalLog
 		void FlushQueuedMessage();
 		bool IsSocketEmpty();
 	public:
+		CLogger(const std::string& name)
+			:name_(name)
+		{
+
+		}
 		void Connect();
 		void Disconnect();
-		void LogMessage(std::string appID, long level, std::string message, bool bReEnter = false);
+		void LogMessage(long level, const std::string& message, bool bReEnter = false);
 
 	private:
-
-		const std::string address = "tcp://127.0.0.1:5556";
+		const std::string Address = "tcp://127.0.0.1:5556";
 		const std::string LoggerServerName = "MMQServer.exe";
 		const std::wstring LoggerServerPath = L"..\\MMQServer\\bin\\Debug\\MMQServer.exe";
-		zmq::context_t context;
-		std::unique_ptr<zmq::socket_t> socket;// (context, ZMQ_REQ);
-		std::vector<std::string> PendingMessages;
-		std::queue <std::future<void> > q;
+		zmq::context_t context_;
+		std::unique_ptr<zmq::socket_t> socket_;// (context, ZMQ_REQ);
+		std::vector<std::string> pending_messages_;
+		std::queue <std::future<void> > queue_message_;
+		std::string name_;
 	};
 }
