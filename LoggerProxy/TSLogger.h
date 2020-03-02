@@ -54,7 +54,7 @@ namespace ExternalLog
 
 		const std::string address = "tcp://127.0.0.1:5556";
 		const std::string LoggerServerName = "MMQServer.exe";
-		const std::wstring LoggerServerPath = L"e:\\RPC\\ZEROMQ\\MMQServer\\bin\\Debug\\MMQServer.exe";
+		const std::wstring LoggerServerPath = L"..\\MMQServer\\bin\\Debug\\MMQServer.exe";
 		zmq::context_t context;
 		std::unique_ptr<zmq::socket_t> socket;// (context, ZMQ_REQ);
 		std::vector<std::string> PendingMessages;

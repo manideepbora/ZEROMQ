@@ -228,10 +228,10 @@ namespace MMQServer
         private void LogData(Command cmd)
         {
             var appName = cmd.Parameters[Command.ParameterName.AppName.ToString()];
+
             NLog.Logger taskLogger = null;
 
-         //   Logger1.Info("Hello world");
-            if (loggers.ContainsKey(appName))
+           if (loggers.ContainsKey(appName))
                 taskLogger = loggers[appName];
             else
             {
@@ -239,7 +239,7 @@ namespace MMQServer
                 loggers[appName] = taskLogger;
             }
 
-            taskLogger.Error(cmd.Parameters[Command.ParameterName.Message.ToString()]); 
+            taskLogger.Error(cmd.Parameters[Command.ParameterName.Message.ToString()] + "*** " + cmd.Parameters[Command.ParameterName.AppName.ToString()]); 
         }
     }
 
