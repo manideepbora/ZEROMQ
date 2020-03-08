@@ -107,7 +107,8 @@
       <AdditionalLibraryDirectories>$(ZMQ_LIB)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy $(ZMQ_BIN)*.dll  $(TargetDir)\*.dll /d /y</Command>
+      <Command>xcopy $(ZMQ_BIN)*.dll  $(TargetDir)*.dll /d /y
+xcopy  $(TargetDir)*.dll  $(ProjectDir)..\SampleClientApp\$(Configuration)\*.dll /d /y</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy dependent dll to the target folder. </Message>
@@ -151,7 +152,8 @@
       <AdditionalLibraryDirectories>$(ZMQ_LIB)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy $(ZMQ_BIN)*.dll  $(TargetDir)\*.dll /d /y</Command>
+      <Command>xcopy $(ZMQ_BIN)*.dll  $(TargetDir)*.dll /d /y
+xcopy  $(TargetDir)*.dll  $(ProjectDir)..\SampleClientApp\$(Configuration)\*.dll /d /y</Command>
     </PostBuildEvent>
     <PostBuildEvent>
       <Message>Copy dependent dll to the target folder. </Message>

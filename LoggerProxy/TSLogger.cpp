@@ -28,9 +28,27 @@ std::string Command::LogCommnad(const std::string& appID, const std::string& mes
 //
 //==================================================
 
+std::mutex CLogger::Mutex;
+std::atomic_int CLogger::LoggerCount = 0;
+void CLogger::QueueLogMessage(const std::string& msg)
+{
+	if (!started_)
+	{
+		pending_messages_.push_back(msg);
+		return;
+	}
+	FlushQueuedMessage();
+	SendLogMessage(msg);
+
+}
+
 
 void CLogger::SendLogMessage(const std::string& msg)
 {
+	const std::lock_guard<std::mutex> lock(Mutex);
+
+	//std::cout << "++ Send ++ " << msg << '\n';
+
 	zmq::message_t request;
 	if (socket_->connected())
 	{
@@ -39,11 +57,10 @@ void CLogger::SendLogMessage(const std::string& msg)
 		zmq::pollitem_t items[] = {
 		  { *socket_, 0, ZMQ_POLLIN, 0 } };
 		if (zmq::poll(items, 1, 10000))
-		{
 			socket_->recv(request, zmq::recv_flags::none);
-		}
 		else
 		{
+			//std::cout << "**** Time out ******" << '\n';
 			pending_messages_.push_back(msg);
 			TerminateConnection();
 			Connect();
@@ -52,6 +69,7 @@ void CLogger::SendLogMessage(const std::string& msg)
 }
 void CLogger::Init()
 {
+	const std::lock_guard<std::mutex> lock(Mutex);
 	StartServer();
 	context_.setctxopt(1, 1);
 	socket_ = std::make_unique< zmq::socket_t>(context_, ZMQ_REQ);
@@ -59,6 +77,8 @@ void CLogger::Init()
 }
 void CLogger::StartServer()
 {
+	//const std::lock_guard<std::mutex> lock(Mutex);
+
 	if (!IsLoggerServerRunning())
 	{
 		STARTUPINFO si;
@@ -81,10 +101,24 @@ void CLogger::StartServer()
 			&pi);           // Pointer to PROCESS_INFORMATION structure
 
 	}
+	started_ = true;
+	stopped_ = false;
 }
 bool CLogger::IsLoggerServerRunning()
 {
-	return IsProcessRunning(LoggerServerName);
+	if (IsProcessRunning(LoggerServerName))
+	{
+		stopped_ = false;
+		started_ = true;
+
+		return true;
+	}
+	else
+	{
+		stopped_ = true;
+		started_ = false;
+		return false;
+	}
 }
 bool CLogger::IsProcessRunning(std::string processName)
 {
@@ -114,6 +148,9 @@ bool CLogger::IsProcessRunning(std::string processName)
 }
 void CLogger::TerminateConnection()
 {
+	const std::lock_guard<std::mutex> lock(Mutex);
+	started_ = false;
+	stopped_ = true;
 	if (socket_ != nullptr && IsLoggerServerRunning())
 		socket_->disconnect(Address.c_str());
 	socket_ = nullptr;
@@ -128,31 +165,59 @@ void CLogger::FlushQueuedMessage()
 }
 bool CLogger::IsSocketEmpty() { return socket_ == nullptr; }
 
+//Started the server and flush all queued message
 void CLogger::Connect()
 {
-	if (socket_ == nullptr)
+	//std::cout << "Connect\n";
+	
+	if (socket_ == nullptr || !started_)
 	{
 		Init();
-		SendLogMessage(Command::StartCommnad(name_, GetCurrentProcessId()));
+		
+		if (stopped_)
+		{
+			TerminateConnection();
+		}
+
+		if(LoggerCount++ == 0)
+			SendLogMessage(Command::StartCommnad(name_, GetCurrentProcessId()));
 	}
-	FlushQueuedMessage();
+	
+	if(started_)
+		FlushQueuedMessage();
 }
 
 void CLogger::Disconnect()
 {
-	SendLogMessage(Command::StopCommnad(name_, GetCurrentProcessId()));
-	TerminateConnection();
+	if (started_ && LoggerCount-- == 1)
+	{
+		SendLogMessage(Command::StopCommnad(name_, GetCurrentProcessId()));
+		TerminateConnection();
+	}
 }
 
 void CLogger::LogMessage(long level, const std::string& message, bool bReEnter)
 {
 	if (!bReEnter)
 	{
-		queue_message_.push(std::move(std::async([this, level, message] {LogMessage(level, message, true); })));
+		//std::cout << "LogMessage before queue " << message << '\n';
+		auto self = shared_from_this();
+		queue_message_.push(std::move(std::async([self, this, level, message] 
+			{
+				LogMessage(level, message, true); 
+			})));
 		return;
 	}
-	if (IsSocketEmpty())
+	
+	if (!started_)
+	{
+		//std::cout << "Execute on different thread == CONNECT\n";
 		Connect();
-	SendLogMessage(Command::LogCommnad(name_, message));
-	queue_message_.pop();
+	}
+	//std::cout << "Execute on different thread == " << message << '\n';
+	QueueLogMessage(Command::LogCommnad(name_, message));
+	//queue_message_.pop();
 }
+
+
+std::shared_ptr<CLogManager> CLogManager::LogManager;

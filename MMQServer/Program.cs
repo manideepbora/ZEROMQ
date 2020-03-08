@@ -90,33 +90,7 @@ namespace MMQServer
             }
         }
 
-        //public void MontitorLister()
-        //{
-        //    while(ActiveMonitor)
-        //    {
-        //        Thread.Sleep(TimeSpan.FromSeconds(20));
-        //        List<int> removeListener = new List<int>();
-        //        lock (_obj)
-        //        {
-        //            foreach (var p in Processes)
-        //            {
-        //                try
-        //                {
-        //                    Process.GetProcessById(p);
-        //                }
-        //                catch (Exception)
-        //                {
-        //                    removeListener.Add(p);
-        //                }
-        //            }
-
-        //            foreach(var p in removeListener)
-        //            {
-        //                Processes.Remove(p);
-        //            }
-        //        }
-        //    }
-        //}
+   
     }
 
     class Command
