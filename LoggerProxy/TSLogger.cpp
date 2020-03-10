@@ -34,13 +34,14 @@ void CLogger::QueueLogMessage(const std::string& msg)
 {
 	if (!started_)
 	{
+		const std::lock_guard<std::mutex> lock2(pending_messages_mutux_);
 		pending_messages_.push_back(msg);
 		return;
 	}
 	FlushQueuedMessage();
 	SendLogMessage(msg);
 
-}
+} 
 
 
 void CLogger::SendLogMessage(const std::string& msg)
@@ -61,11 +62,28 @@ void CLogger::SendLogMessage(const std::string& msg)
 		else
 		{
 			//std::cout << "**** Time out ******" << '\n';
-			pending_messages_.push_back(msg);
+			{
+				const std::lock_guard<std::mutex> lock2(pending_messages_mutux_);
+				pending_messages_.push_back(msg);
+			}
 			TerminateConnection();
 			Connect();
 		}
 	}
+
+	const std::lock_guard<std::mutex> lock2(message_q_mutux_);
+
+	auto proceed (false);
+	do
+	{
+		if (queue_message_.size() == 0)
+			break;
+		auto result = queue_message_.front().wait_for(std::chrono::seconds(0));
+		proceed = (result == std::future_status::ready);
+		if(proceed)
+			queue_message_.pop();
+	} while (proceed);
+		
 }
 void CLogger::Init()
 {
@@ -77,8 +95,6 @@ void CLogger::Init()
 }
 void CLogger::StartServer()
 {
-	//const std::lock_guard<std::mutex> lock(Mutex);
-
 	if (!IsLoggerServerRunning())
 	{
 		STARTUPINFO si;
@@ -161,6 +177,7 @@ void CLogger::FlushQueuedMessage()
 	{
 		SendLogMessage(m);
 	}
+	const std::lock_guard<std::mutex> lock2(pending_messages_mutux_);
 	pending_messages_.clear();
 }
 bool CLogger::IsSocketEmpty() { return socket_ == nullptr; }
@@ -202,6 +219,7 @@ void CLogger::LogMessage(long level, const std::string& message, bool bReEnter)
 	{
 		//std::cout << "LogMessage before queue " << message << '\n';
 		auto self = shared_from_this();
+		const std::lock_guard<std::mutex> lock(message_q_mutux_);
 		queue_message_.push(std::move(std::async([self, this, level, message] 
 			{
 				LogMessage(level, message, true); 
@@ -214,9 +232,8 @@ void CLogger::LogMessage(long level, const std::string& message, bool bReEnter)
 		//std::cout << "Execute on different thread == CONNECT\n";
 		Connect();
 	}
-	//std::cout << "Execute on different thread == " << message << '\n';
 	QueueLogMessage(Command::LogCommnad(name_, message));
-	//queue_message_.pop();
+
 }
 
 

@@ -66,10 +66,12 @@ namespace ExternalLog
 		const std::wstring LoggerServerPath = L"..\\MMQServer\\bin\\Debug\\MMQServer.exe";
 		zmq::context_t context_;
 		std::unique_ptr<zmq::socket_t> socket_;// (context, ZMQ_REQ);
+		std::mutex pending_messages_mutux_;
 		std::vector<std::string> pending_messages_;
 		std::queue <std::future<void> > queue_message_;
 		std::string name_;
 		static std::mutex Mutex;
+		std::mutex message_q_mutux_;
 		static std::atomic_int LoggerCount;
 		std::atomic_bool started_ = false;
 		std::atomic_bool stopped_ = false;
