@@ -75,30 +75,38 @@ namespace ExternalLog
 		static std::atomic_int LoggerCount;
 		std::atomic_bool started_ = false;
 		std::atomic_bool stopped_ = false;
+		std::atomic_int pending_futures_ = 0;
 	};
 
 	class LOGGER_CLASS CLogManager
 	{
 		friend class CLogger;
 	public:
-
-		CLogManager()
-		{
-			int n = 0;
-		}
-		~CLogManager()
-		{
-			int n = 0;
-		}
-
 		std::shared_ptr<CLogger> GetLogger(const std::string& name)
 		{
 			auto logPair = logs_.find(name);
 			if (logPair == logs_.end())
 			{
-				logPair = logs_.insert(std::make_pair( name, std::make_shared<CLogger>(name))).first;
+				logPair = logs_.insert(std::make_pair( name, std::make_pair(0, std::make_shared<CLogger>(name)))).first;
 			}
-			return logPair->second;
+			logPair->second.first++;
+			return logPair->second.second;
+		}
+
+		bool RemoveLogger(const std::string& name)
+		{
+			auto logPair = logs_.find(name);
+			if (logPair != logs_.end())
+			{
+				logPair->second.first--;
+				if (logPair->second.first == 0)
+				{
+					logPair->second.second->Disconnect();
+					logPair = logs_.erase(logPair);
+					return true;
+				}
+			}
+			return false;
 		}
 
 		static std::shared_ptr< CLogManager> GetLogManager()
@@ -112,7 +120,7 @@ namespace ExternalLog
 
 	private:
 		static std::shared_ptr<CLogManager> LogManager;
-		std::map<std::string, std::shared_ptr<CLogger>> logs_;
+		std::map<std::string, std::pair<int,  std::shared_ptr<CLogger>>> logs_;
 	};
 
 	class LOGGER_CLASS CLoggerUtility
@@ -121,11 +129,13 @@ namespace ExternalLog
 	public:
 		CLoggerUtility(const std::string& name )
 			:name_(name)
-		{}
+		{
+			logger_ = CLogManager::GetLogManager()->GetLogger(name_);
+		}
 		~CLoggerUtility()
 		{
 			if (logger_)
-				logger_->Disconnect();
+				CLogManager::GetLogManager()->RemoveLogger(name_);
 		}
 		void LogMessage(long level, const std::string& message)
 		{
@@ -134,6 +144,14 @@ namespace ExternalLog
 				logger_ = CLogManager::GetLogManager()->GetLogger(name_);
 			}
 			logger_->LogMessage( level, message);
+		}
+		void Close()
+		{
+			if (logger_)
+			{
+				//logger_->Disconnect();
+			}
+			
 		}
 
 	private:

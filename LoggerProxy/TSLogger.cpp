@@ -40,18 +40,14 @@ void CLogger::QueueLogMessage(const std::string& msg)
 	}
 	FlushQueuedMessage();
 	SendLogMessage(msg);
-
 } 
 
 
 void CLogger::SendLogMessage(const std::string& msg)
 {
 	const std::lock_guard<std::mutex> lock(Mutex);
-
-	//std::cout << "++ Send ++ " << msg << '\n';
-
 	zmq::message_t request;
-	if (socket_->connected())
+	if ((socket_ != nullptr) && (socket_->connected()))
 	{
 		auto l = socket_->send(zmq::const_buffer(msg.c_str(), msg.size()), zmq::send_flags::dontwait);
 
@@ -61,7 +57,6 @@ void CLogger::SendLogMessage(const std::string& msg)
 			socket_->recv(request, zmq::recv_flags::none);
 		else
 		{
-			//std::cout << "**** Time out ******" << '\n';
 			{
 				const std::lock_guard<std::mutex> lock2(pending_messages_mutux_);
 				pending_messages_.push_back(msg);
@@ -83,7 +78,6 @@ void CLogger::SendLogMessage(const std::string& msg)
 		if(proceed)
 			queue_message_.pop();
 	} while (proceed);
-		
 }
 void CLogger::Init()
 {
@@ -195,19 +189,31 @@ void CLogger::Connect()
 		{
 			TerminateConnection();
 		}
-
-		if(LoggerCount++ == 0)
-			SendLogMessage(Command::StartCommnad(name_, GetCurrentProcessId()));
+		pending_futures_++;
+		SendLogMessage(Command::StartCommnad(name_, GetCurrentProcessId()));
 	}
 	
 	if(started_)
 		FlushQueuedMessage();
 }
 
-void CLogger::Disconnect()
+void CLogger::Disconnect( )
 {
-	if (started_ && LoggerCount-- == 1)
+	//if (!started_ || pending_futures_ != 0 )
+	//{
+	//	auto self = shared_from_this();
+
+	//	queue_message_.push(std::move(std::async([self, this]
+	//	{
+	//		std::this_thread::sleep_for(std::chrono::seconds{ 1 });
+	//		Disconnect();
+	//	})));
+
+	//	return;
+	//}
+	//if (started_ /*&& LoggerCount-- == 1*/)
 	{
+		pending_futures_++;
 		SendLogMessage(Command::StopCommnad(name_, GetCurrentProcessId()));
 		TerminateConnection();
 	}
@@ -220,6 +226,7 @@ void CLogger::LogMessage(long level, const std::string& message, bool bReEnter)
 		//std::cout << "LogMessage before queue " << message << '\n';
 		auto self = shared_from_this();
 		const std::lock_guard<std::mutex> lock(message_q_mutux_);
+		pending_futures_++;
 		queue_message_.push(std::move(std::async([self, this, level, message] 
 			{
 				LogMessage(level, message, true); 

@@ -4,40 +4,47 @@
 #include <TSLogger.h>
 int main()
 {
+	std::string s;
 	{
 		ExternalLog::CLoggerUtility log("OX");
+		ExternalLog::CLoggerUtility log1("OX");
 		log.LogMessage(1, "Hello OX 1");
-		log.LogMessage(1, "Hello OX 2");
+		log1.LogMessage(1, "Hello OX 2");
+		std::cout << "Press any key to continue\n";
+		
+		std::getline(std::cin, s);
 	}
-
-	//auto logger = ExternalLog::CLogManager::GetLogManager()->GetLogger("Chart");
-	//logger->Connect();
-	//auto Oxlogger = ExternalLog::CLogManager::GetLogManager()->GetLogger("OX");
-	//Oxlogger->Connect();
-	int count = 0;
-	
-	ExternalLog::CLoggerUtility Oxlogger("OX");
-	ExternalLog::CLoggerUtility logger("Chart");
-	while (true)
+	std::getline(std::cin, s);
 	{
-		std::stringstream ss;
-		ss << " How are you ? " << count++ << " Process ID : " << GetCurrentProcessId();
-		logger.LogMessage(1, ss.str());
-		Oxlogger.LogMessage(1, " Hello from OX 3");
-
-		{
-			ExternalLog::CLoggerUtility Oxlogger1("OX");
-			Oxlogger1.LogMessage(1, "New Log for OX-4");
-		}
-		std::cout << "more log ?";
-		std::string response;
-		std::getline(std::cin, response);
-
-
-		if (response == "no")
-			break;
+		ExternalLog::CLoggerUtility log3 ("OX");
+		log3.LogMessage(1, "Hello OX 3");
 	}
-	//ExternalLog::CLogManager::GetLogManager()->ClearManager();
+
+	int count = 0;
+	if(0)
+	{
+		ExternalLog::CLoggerUtility Oxlogger("OX");
+		ExternalLog::CLoggerUtility logger("Chart");
+		while (true)
+		{
+			std::stringstream ss;
+			ss << " How are you ? " << count++ << " Process ID : " << GetCurrentProcessId();
+			logger.LogMessage(1, ss.str());
+			Oxlogger.LogMessage(1, " Hello from OX 3");
+			{
+				ExternalLog::CLoggerUtility Oxlogger1("OX");
+				Oxlogger1.LogMessage(1, "New Log for OX-4");
+			}
+			std::cout << "more log ?";
+			std::string response;
+			std::getline(std::cin, response);
+
+
+			if (response == "no")
+				break;
+		}
+	}
 	std::cout << "Hello World!\n";
+	std::getchar();
 }
 
