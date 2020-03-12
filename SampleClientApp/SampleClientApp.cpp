@@ -21,7 +21,7 @@ int main()
 	}
 
 	int count = 0;
-	if(0)
+	
 	{
 		ExternalLog::CLoggerUtility Oxlogger("OX");
 		ExternalLog::CLoggerUtility logger("Chart");
@@ -30,16 +30,14 @@ int main()
 			std::stringstream ss;
 			ss << " How are you ? " << count++ << " Process ID : " << GetCurrentProcessId();
 			logger.LogMessage(1, ss.str());
-			Oxlogger.LogMessage(1, " Hello from OX 3");
+			Oxlogger.LogMessage(1, " Hello from OX 4..");
 			{
 				ExternalLog::CLoggerUtility Oxlogger1("OX");
-				Oxlogger1.LogMessage(1, "New Log for OX-4");
+				Oxlogger1.LogMessage(1, "New Log for OX-5++");
 			}
 			std::cout << "more log ?";
 			std::string response;
 			std::getline(std::cin, response);
-
-
 			if (response == "no")
 				break;
 		}

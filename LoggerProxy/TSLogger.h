@@ -72,6 +72,7 @@ namespace ExternalLog
 		std::string name_;
 		static std::mutex Mutex;
 		std::mutex message_q_mutux_;
+		std::mutex log_message_mutux_;
 		static std::atomic_int LoggerCount;
 		std::atomic_bool started_ = false;
 		std::atomic_bool stopped_ = false;

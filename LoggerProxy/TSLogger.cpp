@@ -50,7 +50,7 @@ void CLogger::SendLogMessage(const std::string& msg)
 	if ((socket_ != nullptr) && (socket_->connected()))
 	{
 		auto l = socket_->send(zmq::const_buffer(msg.c_str(), msg.size()), zmq::send_flags::dontwait);
-
+		pending_futures_--;
 		zmq::pollitem_t items[] = {
 		  { *socket_, 0, ZMQ_POLLIN, 0 } };
 		if (zmq::poll(items, 1, 10000))
@@ -158,7 +158,7 @@ bool CLogger::IsProcessRunning(std::string processName)
 }
 void CLogger::TerminateConnection()
 {
-	const std::lock_guard<std::mutex> lock(Mutex);
+	//const std::lock_guard<std::mutex> lock(Mutex);
 	started_ = false;
 	stopped_ = true;
 	if (socket_ != nullptr && IsLoggerServerRunning())
@@ -199,19 +199,19 @@ void CLogger::Connect()
 
 void CLogger::Disconnect( )
 {
-	//if (!started_ || pending_futures_ != 0 )
-	//{
-	//	auto self = shared_from_this();
+	if (!started_ || pending_futures_ != 0 )
+	{
+		auto self = shared_from_this();
 
-	//	queue_message_.push(std::move(std::async([self, this]
-	//	{
-	//		std::this_thread::sleep_for(std::chrono::seconds{ 1 });
-	//		Disconnect();
-	//	})));
+		queue_message_.push(std::move(std::async([self, this]
+		{
+			std::this_thread::sleep_for(std::chrono::seconds{ 10 });
+			Disconnect();
+		})));
 
-	//	return;
-	//}
-	//if (started_ /*&& LoggerCount-- == 1*/)
+		return;
+	}
+	if (started_ /*&& LoggerCount-- == 1*/)
 	{
 		pending_futures_++;
 		SendLogMessage(Command::StopCommnad(name_, GetCurrentProcessId()));
@@ -233,7 +233,8 @@ void CLogger::LogMessage(long level, const std::string& message, bool bReEnter)
 			})));
 		return;
 	}
-	
+
+	const std::lock_guard<std::mutex> lock(log_message_mutux_);
 	if (!started_)
 	{
 		//std::cout << "Execute on different thread == CONNECT\n";
