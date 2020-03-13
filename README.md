@@ -16,8 +16,11 @@ The application is developed as an alternative to COM projects, including auto c
 * Get the repository and modify the LoggerServerPath variable accoring to the MMQServer projet's output folder
 * Compile all projects and run any of these client application (there are three, one C#, one standalone C++, one C++ using dll)
 
-#How to use the logger:
+# How to use the logger:
 * In Native C++ project, take a look at SampleClientApp Project
 * Create the ExternalLog::CLoggerUtility object as the following code sinppet and call LogMessage on that object:
-    log1("OX");
-		log.LogMessage(1, "Hello OX 1");
+   ```
+   log1("OX");
+   log.LogMessage(1, "Hello OX 1");
+ 
+  ```
