@@ -118,15 +118,15 @@ bool CLogger::IsLoggerServerRunning()
 {
 	if (IsProcessRunning(LoggerServerName))
 	{
-		stopped_ = false;
-		started_ = true;
+		//stopped_ = false;
+		//started_ = true;
 
 		return true;
 	}
 	else
 	{
-		stopped_ = true;
-		started_ = false;
+		//stopped_ = true;
+		//started_ = false;
 		return false;
 	}
 }
@@ -211,7 +211,7 @@ void CLogger::Disconnect( )
 
 		return;
 	}
-	if (started_ /*&& LoggerCount-- == 1*/)
+	if (started_ && LoggerCount-- == 1)
 	{
 		pending_futures_++;
 		SendLogMessage(Command::StopCommnad(name_, GetCurrentProcessId()));

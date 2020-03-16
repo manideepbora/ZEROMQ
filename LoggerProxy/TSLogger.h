@@ -54,6 +54,7 @@ namespace ExternalLog
 		CLogger(const std::string& name)
 			:name_(name)
 		{
+			LoggerCount++;
 		}
 		void Connect();
 		void Disconnect();
@@ -97,6 +98,7 @@ namespace ExternalLog
 		bool RemoveLogger(const std::string& name)
 		{
 			auto logPair = logs_.find(name);
+
 			if (logPair != logs_.end())
 			{
 				logPair->second.first--;

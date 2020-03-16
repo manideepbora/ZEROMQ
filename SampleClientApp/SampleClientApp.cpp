@@ -14,6 +14,7 @@ int main()
 		
 		std::getline(std::cin, s);
 	}
+	std::cout << "Press any key to continue\n";
 	std::getline(std::cin, s);
 	{
 		ExternalLog::CLoggerUtility log3 ("OX");
@@ -42,7 +43,11 @@ int main()
 				break;
 		}
 	}
+	{
+		//ExternalLog::CLoggerUtility Oxlogger("OX");
+	}
 	std::cout << "Hello World!\n";
+
 	std::getchar();
 }
 
