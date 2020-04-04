@@ -1,11 +1,11 @@
 ﻿using NetMQ;
 using NetMQ.Sockets;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -113,12 +113,12 @@ namespace MMQServer
 
         public string GetJson()
         {
-            return JsonSerializer.Serialize(this);
+            return JsonConvert.SerializeObject(this);
         }
 
         public static Command CreateCommand(string json)
         {
-            return JsonSerializer.Deserialize<Command>(json);
+            return (Command)JsonConvert.DeserializeObject<Command>(json);
         }
 
     }
